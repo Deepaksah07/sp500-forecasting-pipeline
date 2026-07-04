@@ -1,13 +1,10 @@
 from fastapi import FastAPI
 import pandas as pd
 import numpy as np
-import lightgbm as lgb
-import joblib
-import os
+import xgboost as xgb
 
 app = FastAPI(title="S&P 500 Forecasting API")
 
-# Retrain model on startup
 def train_model():
     df = pd.read_csv('data/raw/yahoo_stock.csv', parse_dates=['Date'])
     df = df.sort_values('Date').set_index('Date')
@@ -26,7 +23,7 @@ def train_model():
                 'month','dayofweek']
     X = df[features][:-60]
     y = df['Close'][:-60]
-    model = lgb.LGBMRegressor(n_estimators=200, learning_rate=0.05)
+    model = xgb.XGBRegressor(n_estimators=200, learning_rate=0.05)
     model.fit(X, y)
     return model
 
@@ -45,9 +42,9 @@ def predict(
     features = [[lag_1, lag_2, lag_5, lag_10,
                  rolling_mean_5, rolling_mean_10, rolling_std_5,
                  month, dayofweek]]
-    prediction = model.predict(features)[0]
+    prediction = model.predict(np.array(features))[0]
     return {
         "predicted_close_price": round(float(prediction), 2),
         "currency": "USD",
-        "model": "LightGBM"
+        "model": "XGBoost"
     }
